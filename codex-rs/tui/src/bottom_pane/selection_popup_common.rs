@@ -23,6 +23,7 @@ pub(crate) struct GenericDisplayRow {
     pub match_indices: Option<Vec<usize>>, // indices to bold (char positions)
     pub is_current: bool,
     pub description: Option<String>, // optional grey text after the name
+    pub styled_name: Option<Vec<Span<'static>>>,
 }
 
 impl GenericDisplayRow {}
@@ -73,23 +74,39 @@ pub(crate) fn render_rows(
                 match_indices,
                 is_current: _is_current,
                 description,
+                styled_name,
             } = row;
 
             // Highlight fuzzy indices when present.
-            let mut spans: Vec<Span> = Vec::with_capacity(name.len());
-            if let Some(idxs) = match_indices.as_ref() {
-                let mut idx_iter = idxs.iter().peekable();
-                for (char_idx, ch) in name.chars().enumerate() {
-                    if idx_iter.peek().is_some_and(|next| **next == char_idx) {
-                        idx_iter.next();
-                        spans.push(ch.to_string().bold());
-                    } else {
-                        spans.push(ch.to_string().into());
-                    }
+            let mut spans: Vec<Span> = if let Some(styled) = styled_name.as_ref() {
+                let mut spans = styled.clone();
+                if Some(i) == state.selected_idx
+                    && let Some(label_idx) = spans
+                        .iter()
+                        .position(|span| !span.content.trim().is_empty())
+                    && let Some(label_span) = spans.get_mut(label_idx)
+                {
+                    let content = label_span.content.clone().into_owned();
+                    *label_span = content.cyan().bold();
                 }
+                spans
             } else {
-                spans.push(name.clone().into());
-            }
+                let mut spans = Vec::with_capacity(name.len());
+                if let Some(idxs) = match_indices.as_ref() {
+                    let mut idx_iter = idxs.iter().peekable();
+                    for (char_idx, ch) in name.chars().enumerate() {
+                        if idx_iter.peek().is_some_and(|next| **next == char_idx) {
+                            idx_iter.next();
+                            spans.push(ch.to_string().bold());
+                        } else {
+                            spans.push(ch.to_string().into());
+                        }
+                    }
+                } else {
+                    spans.push(name.clone().into());
+                }
+                spans
+            };
 
             if let Some(desc) = description.as_ref() {
                 spans.push("  ".into());

@@ -190,6 +190,14 @@ impl HistoryCell for TranscriptOnlyHistoryCell {
     }
 }
 
+/// Insert a transcript line describing the current review status.
+#[allow(clippy::disallowed_methods)]
+pub(crate) fn new_review_status_line(message: String) -> PlainHistoryCell {
+    PlainHistoryCell {
+        lines: vec![Line::from(message.yellow())],
+    }
+}
+
 #[derive(Debug)]
 pub(crate) struct PatchHistoryCell {
     event_type: PatchEventType,
@@ -651,6 +659,11 @@ pub(crate) fn new_session_info(
                 "  ".into(),
                 "/model".into(),
                 " - choose what model and reasoning effort to use".dim(),
+            ]),
+            Line::from(vec![
+                "  ".into(),
+                "/review".into(),
+                " - review current changes and find issues".dim(),
             ]),
         ];
 
